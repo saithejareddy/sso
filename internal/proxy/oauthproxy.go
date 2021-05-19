@@ -248,8 +248,8 @@ func (p *OAuthProxy) Handler() http.Handler {
 	if p.cookieSecure {
 		handler = requireHTTPS(handler)
 	}
-	handler = p.setResponseHeaderOverrides(p.upstreamConfig, handler)
 	handler = setSecurityHeaders(handler)
+	handler = p.setResponseHeaderOverrides(p.upstreamConfig, handler)
 
 	return handler
 }
