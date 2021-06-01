@@ -285,7 +285,8 @@ func (p *SSOProvider) RefreshSession(s *sessions.SessionState, allowedGroups []s
 		return false, err
 	}
 	if !validGroup {
-		return false, errors.New("Group membership revoked")
+		ErrRefreshGroupMembership := errors.New("refresh: invalid group membership")
+		return false, ErrRefreshGroupMembership
 	}
 	s.Groups = inGroups
 
