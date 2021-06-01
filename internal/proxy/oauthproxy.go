@@ -617,6 +617,7 @@ func (p *OAuthProxy) Authenticate(rw http.ResponseWriter, req *http.Request) (er
 	tags := []string{"action:authenticate"}
 
 	allowedGroups := p.upstreamConfig.AllowedGroups
+	invalidGroupMembershipOnRefresh := false
 
 	// Clear the session cookie if anything goes wrong.
 	defer func() {
@@ -664,8 +665,13 @@ func (p *OAuthProxy) Authenticate(rw http.ResponseWriter, req *http.Request) (er
 		// We failed to refresh the session successfully
 		// clear the cookie and reject the request
 		if err != nil {
-			logger.WithUser(session.Email).Error(err, "refreshing session failed")
-			return err
+			switch err {
+			case p.provider.ErrRefreshGroupMembership:
+				invalidGroupMembership = true
+			default:
+				logger.WithUser(session.Email).Error(err, "refreshing session failed")
+				return err
+			}
 		}
 
 		if !ok {
@@ -722,7 +728,7 @@ func (p *OAuthProxy) Authenticate(rw http.ResponseWriter, req *http.Request) (er
 
 		if !EmailGroupValidator {
 			err := v.Validate(session)
-			if err != nil {
+			if err != nil || invalidGroupMembershipOnRefresh {
 				tags = append(tags, "error:validation_failed")
 				p.StatsdClient.Incr("application_error", tags, 1.0)
 				logger.WithRemoteAddress(remoteAddr).WithUser(session.Email).Info(
