@@ -250,7 +250,7 @@ func (p *SSOProvider) UserGroups(email string, groups []string, accessToken stri
 
 // RefreshSession takes a SessionState and allowedGroups and refreshes the session access token,
 // returns `true` on success, and `false` on error
-func (p *SSOProvider) RefreshSession(s *sessions.SessionState, allowedGroups []string) (bool, error) {
+func (p *SSOProvider) RefreshSession(s *sessions.SessionState, validator options.Validator) (bool, error) {
 	logger := log.NewLogEntry()
 
 	if s.RefreshToken == "" {
@@ -271,26 +271,25 @@ func (p *SSOProvider) RefreshSession(s *sessions.SessionState, allowedGroups []s
 		return false, err
 	}
 
-	inGroups, validGroup, err := p.ValidateGroup(s.Email, allowedGroups, newToken)
-	if err != nil {
-		// When we detect that the auth provider is not explicitly denying
-		// authentication, and is merely unavailable, we refresh and continue
-		// as normal during the "grace period"
-		if err == ErrAuthProviderUnavailable && p.withinGracePeriod(s) {
-			tags := []string{"action:refresh_session", "error:user_groups_failed"}
-			p.StatsdClient.Incr("provider_error_fallback", tags, 1.0)
-			s.RefreshDeadline = extendDeadline(p.SessionValidTTL)
-			return true, nil
-		}
-		return false, err
-	}
-	if !validGroup {
-		ErrRefreshGroupMembership := errors.New("refresh: invalid group membership")
-		return false, ErrRefreshGroupMembership
-	}
-	s.Groups = inGroups
-
 	s.AccessToken = newToken
+	if validator {
+		err = validator.Validate(s)
+		if err != nil {
+			// When we detect that the auth provider is not explicitly denying
+			// authentication, and is merely unavailable, we refresh and continue
+			// as normal during the "grace period"
+			if err == ErrAuthProviderUnavailable && p.withinGracePeriod(s) {
+				tags := []string{"action:refresh_session", "error:user_groups_failed"}
+				p.StatsdClient.Incr("provider_error_fallback", tags, 1.0)
+				s.RefreshDeadline = extendDeadline(p.SessionValidTTL)
+				return true, nil
+			}
+			// Otherwise, remove the new token from the session and return.
+			s.AccessToken = ""
+			return false, err
+		}
+	}
+
 	s.RefreshDeadline = extendDeadline(duration)
 	s.GracePeriodStart = time.Time{}
 	logger.WithUser(s.Email).WithRefreshDeadline(s.RefreshDeadline).Info("refreshed session access token")

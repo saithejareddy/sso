@@ -753,9 +753,16 @@ func (p *OAuthProxy) Authenticate(rw http.ResponseWriter, req *http.Request) (er
 			"lifetime has expired; restarting authentication")
 		return ErrLifetimeExpired
 	} else if session.RefreshPeriodExpired() {
+		validator := options.Validator
+		var validator options.Validator
+		for _, v := range p.Validators {
+			if _, ok := v.(options.EmailGroupValidator); ok {
+				validator := v
+			}
+		}
 		// Refresh period is the period in which the access token is valid. This is ultimately
 		// controlled by the upstream provider and tends to be around 1 hour.
-		ok, err := p.provider.RefreshSession(session, allowedGroups)
+		ok, err := p.provider.RefreshSession(session, validator)
 		// We failed to refresh the session successfully
 		// clear the cookie and reject the request
 		if err != nil {
