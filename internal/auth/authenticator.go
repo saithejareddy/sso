@@ -119,8 +119,8 @@ func (p *Authenticator) newMux() http.Handler {
 	serviceMux.HandleFunc("/redeem", p.withMethods(p.validateClientID(p.validateClientSecret(p.Redeem)), "POST"))
 	serviceMux.HandleFunc("/refresh", p.withMethods(p.validateClientID(p.validateClientSecret(p.Refresh)), "POST"))
 
-	handler := setSecurityHeaders(serviceMux)
-	handler = setSecurityHeaderOverrides(serviceMux, p.SecurityHeaderOverrides)
+	handler := setSecurityHeadersWithOverrides(serviceMux, p.SecurityHeaderOverrides)
+
 	return handler
 }
 

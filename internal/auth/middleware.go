@@ -41,6 +41,15 @@ func setSecurityHeaderOverrides(h http.Handler, headers map[string]string) http.
 	return setHeaders(h, headers)
 }
 
+func setSecurityHeadersWithOverrides(h http.Handler, headerOverrides map[string]string) http.Handler {
+	// While testing, edit the securityHeaders map directly
+	headers := securityHeaders
+	for k, v := range headerOverrides {
+		headers[k] = v
+	}
+	return setHeaders(h, headers)
+}
+
 // withMethods writes an error response if the method of the request is not included.
 func (p *Authenticator) withMethods(f http.HandlerFunc, methods ...string) http.HandlerFunc {
 	methodMap := make(map[string]struct{}, len(methods))
