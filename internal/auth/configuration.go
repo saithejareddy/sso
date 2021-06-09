@@ -414,9 +414,10 @@ func (cc CookieConfig) Validate() error {
 }
 
 type ServerConfig struct {
-	Host   string `mapstructure:"host"`
-	Port   int    `mapstructure:"port"`
-	Scheme string `mapstructure:"scheme"`
+	Host    string            `mapstructure:"host"`
+	Port    int               `mapstructure:"port"`
+	Scheme  string            `mapstructure:"scheme"`
+	Headers map[string]string `mapstructure:"headers"`
 
 	TimeoutConfig TimeoutConfig `mapstructure:"timeout"`
 }
