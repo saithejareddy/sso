@@ -24,13 +24,21 @@ var securityHeaders = map[string]string{
 }
 
 // setHeaders ensures that every response includes some basic security headers
-func setHeaders(h http.Handler) http.Handler {
+func setHeaders(h http.Handler, headers map[string]string) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		for key, val := range securityHeaders {
+		for key, val := range headers {
 			rw.Header().Set(key, val)
 		}
 		h.ServeHTTP(rw, req)
 	})
+}
+
+func setSecurityHeaders(h http.Handler) http.Handler {
+	return setHeaders(h, securityHeaders)
+}
+
+func setSecurityHeaderOverrides(h http.Handler, headers map[string]string) http.Handler {
+	return setHeaders(h, headers)
 }
 
 // withMethods writes an error response if the method of the request is not included.
